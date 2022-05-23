@@ -96,6 +96,11 @@ async function run() {
     const result = await reviewCollection.insertOne(product);
     res.send(result);
   });
+  //   FIND ALL USER
+  app.get("/user", verifyJWT, async (req, res) => {
+    const result = await userCollection.find().toArray();
+    res.send(result);
+  });
   //   USER ADD ON DATABASE
   app.put("/user/:email", async (req, res) => {
     const email = req.params.email;
