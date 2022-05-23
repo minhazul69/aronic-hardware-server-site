@@ -63,6 +63,17 @@ async function run() {
     );
     res.send(result);
   });
+  app.get("/order", verifyJWT, async (req, res) => {
+    const email = req.query?.email;
+    const decodedEmail = req.decoded.email;
+    if (email === decodedEmail) {
+      const query = { email: email };
+      const order = await orderCollection.find(query).toArray();
+      return res.send(order);
+    } else {
+      return res.status(403).send({ message: "Forbidden Access" });
+    }
+  });
   app.put("/user/:email", async (req, res) => {
     const email = req.params.email;
     const filter = { email: email };
