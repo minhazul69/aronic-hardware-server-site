@@ -14,6 +14,7 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+// VERIFY USER ON JOTtOKEN
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -33,16 +34,21 @@ async function run() {
   const productCollection = client.db("aronic-hardware").collection("products");
   const userCollection = client.db("aronic-hardware").collection("user");
   const orderCollection = client.db("aronic-hardware").collection("order");
+  const reviewCollection = client.db("aronic-hardware").collection("review");
+  //   FIND ALL PRODUCT
   app.get("/products", async (req, res) => {
     const result = await productCollection.find().toArray();
     res.send(result);
   });
+  //   FIND PRODUCT ON ID
   app.get("/product/:id", verifyJWT, async (req, res) => {
     const id = req.params.id;
     const query = { _id: ObjectId(id) };
     const result = await productCollection.findOne(query);
     res.send(result);
   });
+
+  //   PRODUCT QUANTITY UPDATE
   app.put("/product/:id", async (req, res) => {
     const id = req.params.id;
     console.log(id);
@@ -63,6 +69,9 @@ async function run() {
     );
     res.send(result);
   });
+
+  //   ALL ORDER
+  //   GET MY ALL ORDER
   app.get("/order", verifyJWT, async (req, res) => {
     const email = req.query?.email;
     const decodedEmail = req.decoded.email;
@@ -74,6 +83,20 @@ async function run() {
       return res.status(403).send({ message: "Forbidden Access" });
     }
   });
+  //   DELETE MY ORDER
+  app.delete("/order/:id", async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const result = await orderCollection.deleteOne(query);
+    res.send(result);
+  });
+  //   USER REVIEW ADDED
+  app.post("/review", async (req, res) => {
+    const product = req.body;
+    const result = await reviewCollection.insertOne(product);
+    res.send(result);
+  });
+  //   USER ADD ON DATABASE
   app.put("/user/:email", async (req, res) => {
     const email = req.params.email;
     const filter = { email: email };
