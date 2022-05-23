@@ -14,18 +14,75 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
-
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "UnAuthorize Access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.JWT_ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden Access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 async function run() {
   await client.connect();
   const productCollection = client.db("aronic-hardware").collection("products");
-  //   app.get("/products", async (req, res) => {
-  //     const result = await productCollection.find().toArray();
-  //     res.send(result);
-  //   });
-  //   app.get("/product/:id", async (req, res) => {
-  //     const query = req.params.id;
-  //     //   const id = {_id ObjectId }
-  //   });
+  const userCollection = client.db("aronic-hardware").collection("user");
+  const orderCollection = client.db("aronic-hardware").collection("order");
+  app.get("/products", async (req, res) => {
+    const result = await productCollection.find().toArray();
+    res.send(result);
+  });
+  app.get("/product/:id", verifyJWT, async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const result = await productCollection.findOne(query);
+    res.send(result);
+  });
+  app.put("/product/:id", async (req, res) => {
+    const id = req.params.id;
+    console.log(id);
+    const updateUser = req.body;
+    console.log(updateUser.quantity);
+    const filter = { _id: ObjectId(id) };
+    const options = { upsert: true };
+    const updateDoc = {
+      $set: {
+        newQuantity: updateUser.quantity,
+      },
+      $set: updateUser,
+    };
+    const result = await productCollection.updateOne(
+      filter,
+      updateDoc,
+      options
+    );
+    res.send(result);
+  });
+  app.put("/user/:email", async (req, res) => {
+    const email = req.params.email;
+    const filter = { email: email };
+    const user = req.body;
+    const options = { upsert: true };
+    const updateDoc = {
+      $set: user,
+    };
+    const result = await userCollection.updateOne(filter, updateDoc, options);
+    const token = jwt.sign({ email: email }, process.env.JWT_ACCESS_TOKEN, {
+      expiresIn: "5h",
+    });
+    res.send({ result, token });
+  });
+  app.post("/order", async (req, res) => {
+    const order = req.body;
+    const result = await orderCollection.insertOne(order);
+    res.send(result);
+  });
+
   try {
   } finally {
   }
