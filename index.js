@@ -59,7 +59,19 @@ async function run() {
     const result = await productCollection.findOne(query);
     res.send(result);
   });
-
+  // INSERT PRODUCT
+  app.post("/product", async (req, res) => {
+    const product = req.body;
+    const result = await productCollection.insertOne(product);
+    res.send(result);
+  });
+  // DELETE PRODUCT
+  app.delete("/product/:id", async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const result = await productCollection.deleteOne(query);
+    res.send(result);
+  });
   //   PRODUCT QUANTITY UPDATE
   app.put("/product/:id", async (req, res) => {
     const id = req.params.id;
@@ -120,13 +132,15 @@ async function run() {
     const result = await userCollection.deleteOne(query);
     res.send(result);
   });
+  // GET ADMIN
   app.get("/admin/:email", async (req, res) => {
     const email = req.params.email;
     const user = await userCollection.findOne({ email: email });
     const isAdmin = user.role === "admin";
     res.send({ admin: isAdmin });
   });
-  app.put("/user/admin/:email", verifyJWT,verifyAdmin, async (req, res) => {
+  // MAKE ADMIN
+  app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
     const email = req.params.email;
     console.log(email);
     const filter = { email: email };
