@@ -35,6 +35,9 @@ async function run() {
   const userCollection = client.db("aronic-hardware").collection("user");
   const orderCollection = client.db("aronic-hardware").collection("order");
   const reviewCollection = client.db("aronic-hardware").collection("review");
+  const userProfileCollection = client
+    .db("aronic-hardware")
+    .collection("userProfile");
   // VERIFY ADMIN
   const verifyAdmin = async (req, res, next) => {
     const requester = req.decoded.email;
@@ -75,9 +78,7 @@ async function run() {
   //   PRODUCT QUANTITY UPDATE
   app.put("/product/:id", async (req, res) => {
     const id = req.params.id;
-    console.log(id);
     const updateUser = req.body;
-    console.log(updateUser.quantity);
     const filter = { _id: ObjectId(id) };
     const options = { upsert: true };
     const updateDoc = {
@@ -95,7 +96,12 @@ async function run() {
   });
 
   //   ALL ORDER
-  //   GET MY ALL ORDER
+  // GET ALL ORDER
+  app.get("/orders", verifyJWT, async (req, res) => {
+    const result = await orderCollection.find().toArray();
+    res.send(result);
+  });
+  //   GET MY  ORDER
   app.get("/order", verifyJWT, async (req, res) => {
     const email = req.query?.email;
     const decodedEmail = req.decoded.email;
@@ -108,7 +114,7 @@ async function run() {
     }
   });
   //   DELETE MY ORDER
-  app.delete("/order/:id", async (req, res) => {
+  app.delete("/order/:id", verifyJWT, async (req, res) => {
     const id = req.params.id;
     const query = { _id: ObjectId(id) };
     const result = await orderCollection.deleteOne(query);
@@ -138,6 +144,34 @@ async function run() {
     const user = await userCollection.findOne({ email: email });
     const isAdmin = user.role === "admin";
     res.send({ admin: isAdmin });
+  });
+  // GET MY PROFILE
+  app.get("/myProfile", verifyJWT, async (req, res) => {
+    const email = req.query?.email;
+    const decodedEmail = req.decoded.email;
+    if (email === decodedEmail) {
+      const query = { email: email };
+      const myProfile = await userProfileCollection.find(query).toArray();
+      return res.send(myProfile);
+    } else {
+      return res.status(403).send({ message: "Forbidden Access" });
+    }
+  });
+  // update MY PROFILE
+  app.put("/userProfile/:email", async (req, res) => {
+    const email = req.params.email;
+    const filter = { email: email };
+    const user = req.body;
+    const options = { upsert: true };
+    const updateDoc = {
+      $set: user,
+    };
+    const result = await userProfileCollection.updateOne(
+      filter,
+      updateDoc,
+      options
+    );
+    res.send(result);
   });
   // MAKE ADMIN
   app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
