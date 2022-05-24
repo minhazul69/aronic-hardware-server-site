@@ -35,6 +35,18 @@ async function run() {
   const userCollection = client.db("aronic-hardware").collection("user");
   const orderCollection = client.db("aronic-hardware").collection("order");
   const reviewCollection = client.db("aronic-hardware").collection("review");
+  // VERIFY ADMIN
+  const verifyAdmin = async (req, res, next) => {
+    const requester = req.decoded.email;
+    const requesterAccount = await userCollection.findOne({
+      email: requester,
+    });
+    if (requesterAccount.role === "admin") {
+      next();
+    } else {
+      res.status(403).send({ message: "Forbidden Access" });
+    }
+  };
   //   FIND ALL PRODUCT
   app.get("/products", async (req, res) => {
     const result = await productCollection.find().toArray();
@@ -99,6 +111,29 @@ async function run() {
   //   FIND ALL USER
   app.get("/user", verifyJWT, async (req, res) => {
     const result = await userCollection.find().toArray();
+    res.send(result);
+  });
+  // DELETE USER
+  app.delete("/user/:id", async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const result = await userCollection.deleteOne(query);
+    res.send(result);
+  });
+  app.get("/admin/:email", async (req, res) => {
+    const email = req.params.email;
+    const user = await userCollection.findOne({ email: email });
+    const isAdmin = user.role === "admin";
+    res.send({ admin: isAdmin });
+  });
+  app.put("/user/admin/:email", verifyJWT,verifyAdmin, async (req, res) => {
+    const email = req.params.email;
+    console.log(email);
+    const filter = { email: email };
+    const updateDoc = {
+      $set: { role: "admin" },
+    };
+    const result = await userCollection.updateOne(filter, updateDoc);
     res.send(result);
   });
   //   USER ADD ON DATABASE
