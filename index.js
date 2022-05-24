@@ -120,6 +120,11 @@ async function run() {
     const result = await orderCollection.deleteOne(query);
     res.send(result);
   });
+  // GET ALL REVIEW
+  app.get("/review", verifyJWT, async (req, res) => {
+    const result = await reviewCollection.find().toArray();
+    res.send(result);
+  });
   //   USER REVIEW ADDED
   app.post("/review", async (req, res) => {
     const product = req.body;
