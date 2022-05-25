@@ -5,7 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
-
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 app.use(cors());
 app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ylkif.mongodb.net/?retryWrites=true&w=majority`;
@@ -35,6 +35,7 @@ async function run() {
   const userCollection = client.db("aronic-hardware").collection("user");
   const orderCollection = client.db("aronic-hardware").collection("order");
   const reviewCollection = client.db("aronic-hardware").collection("review");
+  const paymentCollection = client.db("aronic-hardware").collection("payment");
   const userProfileCollection = client
     .db("aronic-hardware")
     .collection("userProfile");
@@ -113,6 +114,43 @@ async function run() {
       return res.status(403).send({ message: "Forbidden Access" });
     }
   });
+  // CREATE PAYMENT INTENT
+  app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+    const service = req.body;
+    const price = service.price;
+    const amount = price * 100;
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: "usd",
+      payment_method_types: ["card"],
+    });
+    res.send({
+      clientSecret: paymentIntent.client_secret,
+    });
+  });
+  // MY ORDER UPDATE
+  app.patch("/order/:id", verifyJWT, async (req, res) => {
+    const id = req.params.id;
+    const payment = req.body;
+    const filter = { _id: ObjectId(id) };
+    const pending = "PENDING..";
+    const updateDoc = {
+      $set: {
+        paid: pending,
+        transactionId: payment.transactionId,
+      },
+    };
+    const result = await paymentCollection.insertOne(payment);
+    const updateBooking = await orderCollection.updateOne(filter, updateDoc);
+    res.send(updateBooking);
+  });
+  // GET SPACIAL ORDER
+  app.get("/order/:id", async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const order = await orderCollection.findOne(query);
+    res.send(order);
+  });
   //   DELETE MY ORDER
   app.delete("/order/:id", verifyJWT, async (req, res) => {
     const id = req.params.id;
@@ -121,7 +159,7 @@ async function run() {
     res.send(result);
   });
   // GET ALL REVIEW
-  app.get("/review", verifyJWT, async (req, res) => {
+  app.get("/review", async (req, res) => {
     const result = await reviewCollection.find().toArray();
     res.send(result);
   });
