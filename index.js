@@ -133,14 +133,28 @@ async function run() {
     const id = req.params.id;
     const payment = req.body;
     const filter = { _id: ObjectId(id) };
-    const pending = "PENDING..";
+    const pending = "pending";
     const updateDoc = {
       $set: {
-        paid: pending,
+        status: pending,
         transactionId: payment.transactionId,
       },
     };
     const result = await paymentCollection.insertOne(payment);
+    const updateBooking = await orderCollection.updateOne(filter, updateDoc);
+    res.send(updateBooking);
+  });
+  // ORDER STATUS UPDATE
+  app.patch("/updateOrder/:id", verifyJWT, verifyAdmin, async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: ObjectId(id) };
+    console.log(id);
+    const shipped = "shipped";
+    const updateDoc = {
+      $set: {
+        status: shipped,
+      },
+    };
     const updateBooking = await orderCollection.updateOne(filter, updateDoc);
     res.send(updateBooking);
   });
