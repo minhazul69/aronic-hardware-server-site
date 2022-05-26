@@ -148,7 +148,6 @@ async function run() {
   app.patch("/updateOrder/:id", verifyJWT, verifyAdmin, async (req, res) => {
     const id = req.params.id;
     const filter = { _id: ObjectId(id) };
-    console.log(id);
     const shipped = "shipped";
     const updateDoc = {
       $set: {
@@ -233,7 +232,6 @@ async function run() {
   // MAKE ADMIN
   app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
     const email = req.params.email;
-    console.log(email);
     const filter = { email: email };
     const updateDoc = {
       $set: { role: "admin" },
